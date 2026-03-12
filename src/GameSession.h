@@ -2,22 +2,15 @@
 #define GAME_SESSION_H
 
 #include <vector>
-#include <string>
-
-struct DominoTile {
-    int left;
-    int right;
-};
-
-struct Player {
-    std::string name;
-    std::vector<DominoTile> hand;
-};
+#include "Player.h"
+#include "Board.h"
+#include "MoveValidator.h"
 
 class GameSession {
 private:
     std::vector<Player> players;
-    std::vector<DominoTile> board;
+    Board board;
+    MoveValidator validator;
     int currentPlayerIndex;
     int round;
     int maxRounds;
@@ -25,10 +18,8 @@ private:
 
     void setupGame();
     void playTurn();
-    bool canPlayTile(const DominoTile& tile) const;
     bool tryPlayTile(Player& player);
     void passTurn(const Player& player) const;
-    void updateBoard(const DominoTile& tile);
     bool checkWinCondition() const;
     void advanceTurn();
     void printBoard() const;

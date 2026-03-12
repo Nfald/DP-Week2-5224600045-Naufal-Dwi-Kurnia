@@ -5,23 +5,21 @@ GameSession::GameSession()
     : currentPlayerIndex(0), round(1), maxRounds(20), gameOver(false) {}
 
 void GameSession::setupGame() {
-    Player p1;
-    p1.name = "Player 1";
-    p1.hand = {
-        {6, 6}, {6, 5}, {4, 2}
-    };
+    Player p1("Player 1");
+    p1.addTile({6, 6});
+    p1.addTile({6, 5});
+    p1.addTile({4, 2});
 
-    Player p2;
-    p2.name = "Player 2";
-    p2.hand = {
-        {5, 3}, {2, 1}, {1, 1}
-    };
+    Player p2("Player 2");
+    p2.addTile({5, 3});
+    p2.addTile({2, 1});
+    p2.addTile({1, 1});
 
     players.push_back(p1);
     players.push_back(p2);
 
     DominoTile startingTile = {6, 1};
-    board.push_back(startingTile);
+    board.setStartingTile(startingTile);
 
     std::cout << "=== GAME SETUP ===" << std::endl;
     std::cout << "Starting tile: [" << startingTile.left << "|" << startingTile.right << "]" << std::endl;
@@ -52,7 +50,7 @@ void GameSession::run() {
 void GameSession::playTurn() {
     Player& currentPlayer = players[currentPlayerIndex];
 
-    std::cout << "Current player: " << currentPlayer.name << std::endl;
+    std::cout << "Current player: " << currentPlayer.getName() << std::endl;
     printBoard();
     printPlayerHand(currentPlayer);
 
@@ -63,28 +61,18 @@ void GameSession::playTurn() {
     }
 }
 
-bool GameSession::canPlayTile(const DominoTile& tile) const {
-    if (board.empty()) {
-        return true;
-    }
-
-    int leftEnd = board.front().left;
-    int rightEnd = board.back().right;
-
-    return tile.left == leftEnd || tile.right == leftEnd ||
-           tile.left == rightEnd || tile.right == rightEnd;
-}
-
 bool GameSession::tryPlayTile(Player& player) {
-    for (size_t i = 0; i < player.hand.size(); i++) {
-        if (canPlayTile(player.hand[i])) {
-            DominoTile chosenTile = player.hand[i];
+    std::vector<DominoTile>& hand = player.getHand();
 
-            std::cout << player.name << " plays ["
+    for (int i = 0; i < static_cast<int>(hand.size()); i++) {
+        if (validator.canPlay(hand[i], board)) {
+            DominoTile chosenTile = hand[i];
+
+            std::cout << player.getName() << " plays ["
                       << chosenTile.left << "|" << chosenTile.right << "]" << std::endl;
 
-            updateBoard(chosenTile);
-            player.hand.erase(player.hand.begin() + i);
+            board.placeTile(chosenTile);
+            player.removeTile(i);
             return true;
         }
     }
@@ -93,35 +81,13 @@ bool GameSession::tryPlayTile(Player& player) {
 }
 
 void GameSession::passTurn(const Player& player) const {
-    std::cout << player.name << " cannot play and passes." << std::endl;
-}
-
-void GameSession::updateBoard(const DominoTile& tile) {
-    if (board.empty()) {
-        board.push_back(tile);
-        return;
-    }
-
-    int leftEnd = board.front().left;
-    int rightEnd = board.back().right;
-
-    if (tile.right == leftEnd) {
-        board.insert(board.begin(), tile);
-    } else if (tile.left == leftEnd) {
-        DominoTile flipped = {tile.right, tile.left};
-        board.insert(board.begin(), flipped);
-    } else if (tile.left == rightEnd) {
-        board.push_back(tile);
-    } else if (tile.right == rightEnd) {
-        DominoTile flipped = {tile.right, tile.left};
-        board.push_back(flipped);
-    }
+    std::cout << player.getName() << " cannot play and passes." << std::endl;
 }
 
 bool GameSession::checkWinCondition() const {
     for (const Player& player : players) {
-        if (player.hand.empty()) {
-            std::cout << player.name << " wins because all tiles are used." << std::endl;
+        if (player.hasNoTiles()) {
+            std::cout << player.getName() << " wins because all tiles are used." << std::endl;
             return true;
         }
     }
@@ -134,15 +100,15 @@ void GameSession::advanceTurn() {
 
 void GameSession::printBoard() const {
     std::cout << "Board: ";
-    for (const DominoTile& tile : board) {
+    for (const DominoTile& tile : board.getTiles()) {
         std::cout << "[" << tile.left << "|" << tile.right << "] ";
     }
     std::cout << std::endl;
 }
 
 void GameSession::printPlayerHand(const Player& player) const {
-    std::cout << player.name << " hand: ";
-    for (const DominoTile& tile : player.hand) {
+    std::cout << player.getName() << " hand: ";
+    for (const DominoTile& tile : player.getHand()) {
         std::cout << "[" << tile.left << "|" << tile.right << "] ";
     }
     std::cout << std::endl;
